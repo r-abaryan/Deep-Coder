@@ -1,0 +1,52 @@
+# Distillation dataset extraction config.
+
+run_name: "glm5_fp8_code_distill_v0"
+
+paths:
+  out_dir: "out"
+  prompts_jsonl: "out/prompts/prompt_pool.jsonl"
+  raw_jsonl: "out/raw/teacher_generations.jsonl"
+  curated_jsonl: "out/curated/curated.jsonl"
+  export_dir: "out/export"
+
+teacher:
+  model_id: "zai-org/GLM-5-FP8"
+  # OpenAI-compatible endpoint (vLLM / SGLang).
+  base_url: "http://localhost:8000/v1"
+  api_key: "EMPTY"
+  timeout_s: 120
+  max_retries: 4
+  concurrency: 16
+
+generation:
+  seed: 42
+  temperature: 0.6
+  top_p: 0.95
+  max_tokens: 768
+  n: 1
+  stop: []
+
+prompt_pool:
+  languages: ["python", "typescript", "javascript"]
+  total_prompts: 2000
+  task_mix:
+    completion: 0.35
+    bugfix: 0.20
+    refactor: 0.15
+    explain: 0.15
+    tests: 0.10
+    code_review: 0.05
+
+filters:
+  min_output_chars: 64
+  max_output_chars: 20000
+  drop_refusals: true
+  require_python_syntax_valid: true
+  require_ts_js_syntax_valid: true
+
+dedup:
+  enable_exact: true
+  enable_near: false
+  # Near-dup config will be enabled when `datasketch` is installed.
+  near_jaccard_threshold: 0.92
+

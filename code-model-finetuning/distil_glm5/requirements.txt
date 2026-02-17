@@ -39,3 +39,6 @@ python-dotenv>=1.0.0
 pyyaml>=6.0.0
 jupyter>=1.0.0
 ipywidgets>=8.1.0
+
+# Optional: near-duplicate detection
+datasketch>=1.6.5
