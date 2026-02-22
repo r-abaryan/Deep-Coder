@@ -82,6 +82,22 @@ filters:
 
 Adjust `total_prompts` and `concurrency` for your hardware.
 
+Optional: a second model (judge) can accept or reject teacher outputs (rejection sampling). Off by default. In `configs/base.yaml`:
+
+```yaml
+judge:
+  enabled: false
+  model_id: "Qwen/Qwen2.5-Coder-7B-Instruct"
+  base_url: "http://localhost:8000/v1"
+  api_key: "EMPTY"
+  timeout_s: 60
+  max_retries: 2
+  max_tokens: 10
+  temperature: 0.0
+```
+
+Set `enabled: true` and point `base_url` at a server that serves the judge model (e.g. same vLLM with a second model, or another endpoint). The judge is called during `filter_and_dedup.py`; only rows it accepts are kept.
+
 ---
 
 ### 4. Run the distillation pipeline

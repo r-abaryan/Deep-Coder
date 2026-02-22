@@ -4,14 +4,16 @@ import argparse
 import hashlib
 from typing import Any
 
-from distil_glm5.config import load_config
-from distil_glm5.filters import (
+from src.distil_glm5.config import load_config
+from src.distil_glm5.filters import (
     build_curated_row,
     filter_example,
     normalize_for_hash,
     redact_obvious_secrets,
 )
-from distil_glm5.io_utils import read_jsonl, write_jsonl
+from src.distil_glm5.io_utils import read_jsonl, write_jsonl
+from src.distil_glm5.judge import get_instruction_from_row, judge_keep
+from src.distil_glm5.teacher_client import OpenAICompatChatClient
 
 
 def _hash_text(text: str) -> str:
@@ -31,6 +33,16 @@ def main() -> int:
     seen_exact: set[str] = set()
     curated: list[dict[str, Any]] = []
     dropped = 0
+
+    judge_client = None
+    if cfg.judge.enabled:
+        print(f"Judge enabled: {cfg.judge.model_id} at {cfg.judge.base_url}")
+        judge_client = OpenAICompatChatClient(
+            base_url=cfg.judge.base_url,
+            api_key=cfg.judge.api_key,
+            timeout_s=cfg.judge.timeout_s,
+            max_retries=cfg.judge.max_retries,
+        )
 
     for row in raw_rows:
         out_text = row.get("output_text", "") or ""
@@ -58,6 +70,19 @@ def main() -> int:
                 continue
             seen_exact.add(h)
 
+        judge_passed = None
+        if cfg.judge.enabled:
+            instruction = get_instruction_from_row(row)
+            if not judge_keep(
+                instruction=instruction,
+                output=out_text.strip(),
+                judge_config=cfg.judge,
+                client=judge_client,
+            ):
+                dropped += 1
+                continue
+            judge_passed = True
+
         curated.append(
             build_curated_row(
                 prompt_row=row,
@@ -67,6 +92,7 @@ def main() -> int:
                 raw_response=row.get("raw", {}),
                 filter_reasons=fr.reasons,
                 redacted=redacted,
+                judge_passed=judge_passed,
             )
         )
 

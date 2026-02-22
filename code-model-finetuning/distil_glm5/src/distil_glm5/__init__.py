@@ -1,2 +1,2 @@
-__all__ = ["config", "io_utils", "prompts", "teacher_client", "filters"]
+__all__ = ["config", "io_utils", "prompts", "teacher_client", "filters", "judge"]
 

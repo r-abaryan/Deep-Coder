@@ -57,6 +57,18 @@ class FiltersConfig:
 
 
 @dataclass(frozen=True)
+class JudgeConfig:
+    enabled: bool
+    model_id: str
+    base_url: str
+    api_key: str
+    timeout_s: float
+    max_retries: int
+    max_tokens: int
+    temperature: float
+
+
+@dataclass(frozen=True)
 class DedupConfig:
     enable_exact: bool
     enable_near: bool
@@ -71,6 +83,7 @@ class AppConfig:
     generation: GenerationConfig
     prompt_pool: PromptPoolConfig
     filters: FiltersConfig
+    judge: JudgeConfig
     dedup: DedupConfig
 
 
@@ -125,6 +138,18 @@ def load_config(config_path: str | Path) -> AppConfig:
         require_ts_js_syntax_valid=bool(filt_raw.get("require_ts_js_syntax_valid", True)),
     )
 
+    judge_raw = raw.get("judge", {})
+    judge = JudgeConfig(
+        enabled=bool(judge_raw.get("enabled", False)),
+        model_id=str(judge_raw.get("model_id", "Qwen/Qwen2.5-Coder-7B-Instruct")),
+        base_url=str(judge_raw.get("base_url", "http://localhost:8000/v1")).rstrip("/"),
+        api_key=str(judge_raw.get("api_key", "EMPTY")),
+        timeout_s=float(judge_raw.get("timeout_s", 60)),
+        max_retries=int(judge_raw.get("max_retries", 2)),
+        max_tokens=int(judge_raw.get("max_tokens", 10)),
+        temperature=float(judge_raw.get("temperature", 0.0)),
+    )
+
     dedup_raw = raw.get("dedup", {})
     dedup = DedupConfig(
         enable_exact=bool(dedup_raw.get("enable_exact", True)),
@@ -139,6 +164,7 @@ def load_config(config_path: str | Path) -> AppConfig:
         generation=generation,
         prompt_pool=prompt_pool,
         filters=filters,
+        judge=judge,
         dedup=dedup,
     )
 

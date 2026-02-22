@@ -28,7 +28,7 @@ generation:
 
 prompt_pool:
   languages: ["python", "typescript", "javascript"]
-  total_prompts: 2000
+  total_prompts: 100000
   task_mix:
     completion: 0.35
     bugfix: 0.20
@@ -43,6 +43,18 @@ filters:
   drop_refusals: true
   require_python_syntax_valid: true
   require_ts_js_syntax_valid: true
+
+# Optional second model to accept/reject teacher outputs (rejection sampling).
+# Off by default. When enabled, only rows the judge accepts are kept.
+judge:
+  enabled: false
+  model_id: "Qwen/Qwen2.5-Coder-7B-Instruct"
+  base_url: "http://localhost:8000/v1"
+  api_key: "EMPTY"
+  timeout_s: 60
+  max_retries: 2
+  max_tokens: 10
+  temperature: 0.0
 
 dedup:
   enable_exact: true

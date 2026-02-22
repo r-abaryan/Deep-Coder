@@ -222,7 +222,11 @@ def build_curated_row(
     raw_response: dict[str, Any],
     filter_reasons: list[str],
     redacted: bool,
+    judge_passed: bool | None = None,
 ) -> dict[str, Any]:
+    quality: dict[str, Any] = {"filter_reasons": filter_reasons, "redacted": redacted}
+    if judge_passed is not None:
+        quality["judge_passed"] = judge_passed
     return {
         "schema_version": 1,
         "id": prompt_row["id"],
@@ -231,7 +235,7 @@ def build_curated_row(
         "messages": prompt_row["messages"] + [{"role": "assistant", "content": output_text}],
         "teacher": teacher_model,
         "gen": gen_params,
-        "quality": {"filter_reasons": filter_reasons, "redacted": redacted},
+        "quality": quality,
         "provenance": prompt_row.get("meta", {}),
         "raw": {"teacher_response": raw_response},
     }
