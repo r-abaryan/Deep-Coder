@@ -1,6 +1,6 @@
 ## DISTIL_GLM5
 
-Generate a code-focused distillation dataset by running a teacher model (planned: `zai-org/GLM-5-FP8`) on a prompt pool, then filtering/deduping and exporting the results.
+Generate a code-focused distillation dataset by running a teacher model (planned: `zai-org/GLM-5-FP8`) on a prompt pool, (optionaly 2nd Model as reviewer can be enabled for Gold standard produced Dataset), then filtering/deduping and exporting the results.
 
 ### Quickstart
 

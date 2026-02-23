@@ -28,6 +28,7 @@ generation:
 
 prompt_pool:
   languages: ["python", "typescript", "javascript"]
+  # Try to lower it down for experiments
   total_prompts: 100000
   task_mix:
     completion: 0.35
@@ -46,6 +47,7 @@ filters:
 
 # Optional second model to accept/reject teacher outputs (rejection sampling).
 # Off by default. When enabled, only rows the judge accepts are kept.
+# For better and higher quality data, we can enable this. If both Model agree on the output, Gold Standard Dataset is created.
 judge:
   enabled: false
   model_id: "Qwen/Qwen2.5-Coder-7B-Instruct"
