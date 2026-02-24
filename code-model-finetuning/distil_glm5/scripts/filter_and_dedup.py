@@ -4,16 +4,16 @@ import argparse
 import hashlib
 from typing import Any
 
-from src.distil_glm5.config import load_config
-from src.distil_glm5.filters import (
+from distil_glm5.config import load_config
+from distil_glm5.filters import (
     build_curated_row,
     filter_example,
     normalize_for_hash,
     redact_obvious_secrets,
 )
-from src.distil_glm5.io_utils import read_jsonl, write_jsonl
-from src.distil_glm5.judge import get_instruction_from_row, judge_keep
-from src.distil_glm5.teacher_client import OpenAICompatChatClient
+from distil_glm5.io_utils import read_jsonl, write_jsonl
+from distil_glm5.judge import get_instruction_from_row, judge_keep
+from distil_glm5.teacher_client import OpenAICompatChatClient
 
 
 def _hash_text(text: str) -> str:
@@ -44,6 +44,7 @@ def main() -> int:
             max_retries=cfg.judge.max_retries,
         )
 
+    to_judge = []
     for row in raw_rows:
         out_text = row.get("output_text", "") or ""
 
@@ -70,31 +71,57 @@ def main() -> int:
                 continue
             seen_exact.add(h)
 
-        judge_passed = None
         if cfg.judge.enabled:
             instruction = get_instruction_from_row(row)
-            if not judge_keep(
+            to_judge.append((row, instruction, out_text, fr, redacted))
+        else:
+            curated.append(
+                build_curated_row(
+                    prompt_row=row,
+                    teacher_model=row.get("teacher", cfg.teacher.model_id),
+                    gen_params=row.get("gen", {}),
+                    output_text=out_text.strip(),
+                    raw_response=row.get("raw", {}),
+                    filter_reasons=fr.reasons,
+                    redacted=redacted,
+                    judge_passed=None,
+                )
+            )
+
+    if cfg.judge.enabled and to_judge:
+        import concurrent.futures as cf
+        from tqdm import tqdm
+
+        def _judge_one(item):
+            row, instruction, out_text, fr, redacted = item
+            passed = judge_keep(
                 instruction=instruction,
                 output=out_text.strip(),
                 judge_config=cfg.judge,
                 client=judge_client,
-            ):
-                dropped += 1
-                continue
-            judge_passed = True
-
-        curated.append(
-            build_curated_row(
-                prompt_row=row,
-                teacher_model=row.get("teacher", cfg.teacher.model_id),
-                gen_params=row.get("gen", {}),
-                output_text=out_text.strip(),
-                raw_response=row.get("raw", {}),
-                filter_reasons=fr.reasons,
-                redacted=redacted,
-                judge_passed=judge_passed,
             )
-        )
+            return item, passed
+
+        with cf.ThreadPoolExecutor(max_workers=min(32, cfg.teacher.concurrency)) as ex:
+            futs = [ex.submit(_judge_one, item) for item in to_judge]
+            for fut in tqdm(cf.as_completed(futs), total=len(futs), desc="Judging"):
+                item, passed = fut.result()
+                row, instruction, out_text, fr, redacted = item
+                if passed:
+                    curated.append(
+                        build_curated_row(
+                            prompt_row=row,
+                            teacher_model=row.get("teacher", cfg.teacher.model_id),
+                            gen_params=row.get("gen", {}),
+                            output_text=out_text.strip(),
+                            raw_response=row.get("raw", {}),
+                            filter_reasons=fr.reasons,
+                            redacted=redacted,
+                            judge_passed=True,
+                        )
+                    )
+                else:
+                    dropped += 1
 
     write_jsonl(cfg.paths.curated_jsonl, curated)
     print(f"Curated {len(curated)} rows; dropped {dropped}. Output: {cfg.paths.curated_jsonl}")

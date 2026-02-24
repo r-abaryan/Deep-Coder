@@ -69,274 +69,91 @@ def build_prompt_pool(
 
 
 def _make_templated_prompt(*, rng: random.Random, task_type: str, language: str) -> PromptExample:
-    # Language-aware templates. Defaults to Python if unknown.
     norm_lang = language.lower()
-
     if norm_lang in {"python", "py"}:
-        language = "python"
-        if task_type == "completion":
-            user = (
-                "Complete the following Python code.\n\n"
-                "Requirements:\n"
-                "- Keep it idiomatic and type-hinted\n"
-                "- Handle edge cases\n\n"
-                "Starter code:\n"
-                "```python\n"
-                "def normalize_whitespace(text: str) -> str:\n"
-                "    \"\"\"Collapse multiple spaces and trim.\"\"\"\n"
-                "    # TODO\n"
-                "```\n"
-            )
-        elif task_type == "bugfix":
-            user = (
-                "Fix the bug(s) in this Python code and return only the corrected code.\n\n"
-                "```python\n"
-                "def is_palindrome(s: str) -> bool:\n"
-                "    s = ''.join(ch.lower() for ch in s if ch.isalnum())\n"
-                "    return s == s.reverse()\n"
-                "```\n"
-            )
-        elif task_type == "refactor":
-            user = (
-                "Refactor this Python code for readability and performance without changing behavior.\n"
-                "Return only the refactored code.\n\n"
-                "```python\n"
-                "def count_words(text):\n"
-                "    words = text.split(' ')\n"
-                "    d = {}\n"
-                "    for w in words:\n"
-                "        if w in d:\n"
-                "            d[w] = d[w] + 1\n"
-                "        else:\n"
-                "            d[w] = 1\n"
-                "    return d\n"
-                "```\n"
-            )
-        elif task_type == "tests":
-            user = (
-                "Write unit tests (pytest) for this function. Include edge cases.\n\n"
-                "```python\n"
-                "def clamp(x: float, lo: float, hi: float) -> float:\n"
-                "    return max(lo, min(hi, x))\n"
-                "```\n"
-            )
-        elif task_type == "explain":
-            user = (
-                "Explain what this Python function does, its time complexity, and common pitfalls.\n\n"
-                "```python\n"
-                "def dedupe_keep_order(items):\n"
-                "    seen = set()\n"
-                "    out = []\n"
-                "    for x in items:\n"
-                "        if x in seen:\n"
-                "            continue\n"
-                "        seen.add(x)\n"
-                "        out.append(x)\n"
-                "    return out\n"
-                "```\n"
-            )
-        elif task_type == "code_review":
-            user = (
-                "Do a short code review: list issues and suggest improvements.\n\n"
-                "```python\n"
-                "import requests\n"
-                "def fetch(url):\n"
-                "    return requests.get(url).text\n"
-                "```\n"
-            )
-        else:
-            user = (
-                "Write a Python function that parses an ISO date string and returns a datetime.date."
-            )
-            task_type = "misc"
-
+        language = "Python"
     elif norm_lang in {"typescript", "ts"}:
-        language = "typescript"
-        if task_type == "completion":
-            user = (
-                "Complete the following TypeScript function.\n\n"
-                "Requirements:\n"
-                "- Use precise types\n"
-                "- Do not use `any`\n"
-                "- Handle edge cases\n\n"
-                "Starter code:\n"
-                "```ts\n"
-                "export function normalizeWhitespace(text: string): string {\n"
-                "  // TODO\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "bugfix":
-            user = (
-                "Fix the bug(s) in this TypeScript code and return only the corrected code.\n\n"
-                "```ts\n"
-                "export function isPalindrome(s: string): boolean {\n"
-                "  const cleaned = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n"
-                "  return cleaned === cleaned.reverse();\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "refactor":
-            user = (
-                "Refactor this TypeScript code for readability and performance without changing behavior.\n"
-                "Return only the refactored code.\n\n"
-                "```ts\n"
-                "export function countWords(text: string): Record<string, number> {\n"
-                "  const parts = text.split(' ');\n"
-                "  const counts: Record<string, number> = {};\n"
-                "  for (const w of parts) {\n"
-                "    counts[w] = (counts[w] ?? 0) + 1;\n"
-                "  }\n"
-                "  return counts;\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "tests":
-            user = (
-                "Write unit tests (Vitest or Jest) for this TypeScript function. Include edge cases.\n\n"
-                "```ts\n"
-                "export function clamp(x: number, lo: number, hi: number): number {\n"
-                "  return Math.max(lo, Math.min(hi, x));\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "explain":
-            user = (
-                "Explain what this TypeScript function does, its time complexity, and common pitfalls.\n\n"
-                "```ts\n"
-                "export function dedupeKeepOrder<T>(items: T[]): T[] {\n"
-                "  const seen = new Set<T>();\n"
-                "  const out: T[] = [];\n"
-                "  for (const x of items) {\n"
-                "    if (seen.has(x)) continue;\n"
-                "    seen.add(x);\n"
-                "    out.push(x);\n"
-                "  }\n"
-                "  return out;\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "code_review":
-            user = (
-                "Do a short code review: list issues and suggest improvements to typing and error handling.\n\n"
-                "```ts\n"
-                "import axios from 'axios';\n"
-                "export async function fetch(url: string) {\n"
-                "  const res = await axios.get(url);\n"
-                "  return res.data;\n"
-                "}\n"
-                "```\n"
-            )
-        else:
-            user = "Write a small TypeScript utility function for parsing ISO date strings."
-            task_type = "misc"
-
+        language = "TypeScript"
     elif norm_lang in {"javascript", "js"}:
-        language = "javascript"
-        if task_type == "completion":
-            user = (
-                "Complete the following JavaScript function.\n\n"
-                "Requirements:\n"
-                "- Use modern ES syntax\n"
-                "- Handle edge cases\n\n"
-                "Starter code:\n"
-                "```js\n"
-                "export function normalizeWhitespace(text) {\n"
-                "  // TODO\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "bugfix":
-            user = (
-                "Fix the bug(s) in this JavaScript code and return only the corrected code.\n\n"
-                "```js\n"
-                "export function isPalindrome(s) {\n"
-                "  const cleaned = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n"
-                "  return cleaned === cleaned.reverse();\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "refactor":
-            user = (
-                "Refactor this JavaScript code for readability and performance without changing behavior.\n"
-                "Return only the refactored code.\n\n"
-                "```js\n"
-                "export function countWords(text) {\n"
-                "  const parts = text.split(' ');\n"
-                "  const counts = {};\n"
-                "  for (const w of parts) {\n"
-                "    counts[w] = (counts[w] ?? 0) + 1;\n"
-                "  }\n"
-                "  return counts;\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "tests":
-            user = (
-                "Write Jest tests for this JavaScript function. Include edge cases.\n\n"
-                "```js\n"
-                "export function clamp(x, lo, hi) {\n"
-                "  return Math.max(lo, Math.min(hi, x));\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "explain":
-            user = (
-                "Explain what this JavaScript function does, its time complexity, and common pitfalls.\n\n"
-                "```js\n"
-                "export function dedupeKeepOrder(items) {\n"
-                "  const seen = new Set();\n"
-                "  const out = [];\n"
-                "  for (const x of items) {\n"
-                "    if (seen.has(x)) continue;\n"
-                "    seen.add(x);\n"
-                "    out.push(x);\n"
-                "  }\n"
-                "  return out;\n"
-                "}\n"
-                "```\n"
-            )
-        elif task_type == "code_review":
-            user = (
-                "Do a short code review: list issues and suggest improvements (error handling, async, style).\n\n"
-                "```js\n"
-                "import axios from 'axios';\n"
-                "export async function fetch(url) {\n"
-                "  return (await axios.get(url)).data;\n"
-                "}\n"
-                "```\n"
-            )
-        else:
-            user = "Write a small JavaScript utility function for parsing ISO date strings."
-            task_type = "misc"
-
+        language = "JavaScript"
+        
+    topics = [
+        "string manipulation", "data validation", "API request handling", "database schema querying", 
+        "data serialization", "matrix operations", "regex parsing", "file reading and writing",
+        "graph traversal", "binary tree manipulation", "sorting arrays", "hashing data",
+        "encryption/decryption wrappers", "user authentication logic", "logging middleware",
+        "background job processing", "HTML parsing", "CLI argument parsing", "image processing",
+        "rate limiting", "websocket communication", "caching mechanisms", "retry logic with exponential backoff",
+        "date and timezone manipulation", "concurrent task execution", "configuration management",
+        "state management", "custom array iteration", "mathematical computations", "memory caching"
+    ]
+    constraints = [
+        "Make it highly optimized for memory usage.",
+        "Do not use any third-party libraries; stick to the standard library.",
+        "Use a functional programming style.",
+        "Use an object-oriented approach with appropriate abstractions.",
+        "Include exhaustive error handling and distinct custom exception types.",
+        "Ensure the time complexity is minimal (e.g. O(1) or O(N) where possible).",
+        "Include detailed docstrings and comments explaining the edge cases.",
+        "Make it thread-safe or safe for concurrent use.",
+        "Write as clean and readable code as possible.",
+        "Handle very large inputs cleanly without crashing or out-of-memory errors.",
+        "Use strict type annotations for all parameters and return types.",
+        "Use idiomatic patterns standard for this language."
+    ]
+    formats = [
+        "a single function",
+        "a class with accompanying methods",
+        "a small utility module",
+        "a set of purely functional helpers"
+    ]
+    
+    topic = rng.choice(topics)
+    constraint = rng.choice(constraints)
+    fmt = rng.choice(formats)
+    
+    if task_type == "completion":
+        user = f"Write a {language} implementation for {topic}. Please provide {fmt}.\n\nRequirements:\n- {constraint}"
+    elif task_type == "tests":
+        user = f"Write comprehensive unit tests in {language} for a hypothetical {fmt} that handles {topic}. Use standard testing libraries.\n\nRequirements:\n- {constraint}\n- Include both positive and negative (error) test cases."
+    elif task_type == "explain":
+        user = f"Explain the best practices for implementing {topic} in {language}.\n\nRequirements:\n- Provide clear code examples.\n- Discuss performance and security implications.\n- {constraint}"
+    elif task_type == "code_review":
+        user = f"What are common performance or security bugs developers make when writing {language} code for {topic}? Provide bad code examples and then the corrected versions.\n\nRequirements:\n- {constraint}"
+    elif task_type == "bugfix":
+        user = f"Create a tricky debugging scenario relating to {topic} in {language}. Show the buggy code, explain why it fails under certain edge cases, and then provide the fix.\n\nRequirements:\n- {constraint}"
+    elif task_type == "refactor":
+        user = f"Show an example of poorly structured, messy {language} code that handles {topic}. Then, demonstrate how you would refactor it for production use, applying clean code principles.\n\nRequirements:\n- {constraint}"
     else:
-        # Fallback: treat as Python.
-        language = "python"
-        user = (
-            "Write a Python function that parses an ISO date string and returns a datetime.date."
-        )
-        task_type = "misc"
+        user = f"Write a complete, production-ready {language} script for {topic}.\n\nRequirements:\n- {constraint}"
 
-    # Add a small amount of variation to reduce duplicates.
     style_hint = rng.choice(
         [
-            "Prefer small helper functions.",
             "Prefer clear variable names.",
-            "Prefer early returns.",
-            "Avoid unnecessary dependencies.",
+            "Write modular code.",
+            "Use comprehensive type annotations where applicable.",
+            "Make sure edge cases like null or empty inputs are handled.",
+            "Minimize nesting by using early returns.",
+            "Avoid magic numbers or hardcoded strings."
         ]
     )
-    user = user + f"\nStyle hint: {style_hint}\n"
+    user = user + f"\n\nStyle hint: {style_hint}\n"
+
+    system_variants = [
+        SYSTEM_CODE,
+        "You are a senior software developer with years of experience. Provide clear, correct, and robust code.",
+        "You are an expert programmer. Output high-quality code and minimal fluff.",
+        "You are an AI coding assistant. Ensure your solutions are optimal and thoroughly commented."
+    ]
 
     return PromptExample(
         id=_new_id(),
         task_type=task_type,
-        language=language,
+        language=language.lower(),
         messages=[
-            {"role": "system", "content": SYSTEM_CODE},
+            {"role": "system", "content": rng.choice(system_variants)},
             {"role": "user", "content": user},
         ],
-        meta={"source": "templated_v0"},
+        meta={"source": "templated_v1", "topic": topic, "constraint": constraint},
     )
 

@@ -71,7 +71,8 @@ _HAS_NODE = shutil.which("node") is not None
 def typescript_syntax_valid(code: str) -> bool:
     """
     Best-effort TS syntax check using `tsc --noEmit` if available.
-    If tsc is not installed, returns True (no-op).
+    Ignores module resolution and type-checking errors (TS2xxx/TS7xxx),
+    failing only if there are syntax errors (TS1xxx).
     """
     if not _HAS_TSC:
         return True
@@ -80,12 +81,17 @@ def typescript_syntax_valid(code: str) -> bool:
         tmp_path = tmp.name
     try:
         proc = subprocess.run(
-            ["tsc", "--noEmit", "--pretty", "false", tmp_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            ["tsc", "--noEmit", "--skipLibCheck", tmp_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
             check=False,
         )
-        return proc.returncode == 0
+        out = proc.stdout + "\n" + proc.stderr
+        # TS1xxx are syntax errors. If any exist in the output, it's a syntax error.
+        if re.search(r"TS1\d{3}:", out):
+            return False
+        return True
     finally:
         try:
             tempfile.os.remove(tmp_path)
@@ -95,37 +101,22 @@ def typescript_syntax_valid(code: str) -> bool:
 
 def javascript_syntax_valid(code: str) -> bool:
     """
-    Best-effort JS syntax check using Node's Function constructor if available.
-    If node is not installed, returns True (no-op).
+    Best-effort JS syntax check using Node's syntax check if available.
+    Supports ES modules.
     """
     if not _HAS_NODE:
         return True
-    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as tmp:
-        tmp.write(code)
-        tmp_path = tmp.name
     try:
         proc = subprocess.run(
-            [
-                "node",
-                "-e",
-                (
-                    "const fs=require('fs');"
-                    "const p=process.argv[2];"
-                    "const src=fs.readFileSync(p,'utf8');"
-                    "new Function(src);"
-                ),
-                tmp_path,
-            ],
+            ["node", "--check", "--input-type=module"],
+            input=code.encode("utf-8"),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
         )
         return proc.returncode == 0
-    finally:
-        try:
-            tempfile.os.remove(tmp_path)
-        except OSError:
-            pass
+    except OSError:
+        return True
 
 
 def filter_example(
