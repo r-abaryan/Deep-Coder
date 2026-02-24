@@ -29,7 +29,7 @@ generation:
 prompt_pool:
   languages: ["python", "typescript", "javascript"]
   # Try to lower it down for experiments
-  total_prompts: 100000
+  total_prompts: 10000
   task_mix:
     completion: 0.35
     bugfix: 0.20

@@ -204,6 +204,44 @@ def redact_obvious_secrets(text: str) -> tuple[str, bool]:
     return out, changed
 
 
+def get_difficulty_score(prompt_row: dict[str, Any], output_text: str) -> dict[str, Any]:
+    """Calculate basic difficulty metrics based on length and syntactical complexity."""
+    t = output_text.strip()
+    score = {
+        "length": len(t),
+        "lines": len(t.splitlines()),
+        "has_comments": bool(re.search(r'#|//|/\*|"""', t)),
+        "has_types": bool(re.search(r':\s*[A-Z][a-zA-Z]+', t)),
+        "import_diversity": len(set(re.findall(r'import (\w+)|from (\w+)', t))),
+    }
+    
+    # Simple heuristic
+    if score["lines"] < 15 and not score["has_types"]:
+        score["level"] = "basic"
+    elif score["lines"] > 50 and score["has_types"] and score["import_diversity"] > 2:
+        score["level"] = "advanced"
+    else:
+        score["level"] = "intermediate"
+        
+    return score
+
+
+def build_minhash(text: str, num_perm: int = 128) -> Any:
+    """Build a datasketch MinHash object from the text for near-dedup.
+    Returns None if datasketch is not installed.
+    """
+    try:
+        from datasketch import MinHash
+    except ImportError:
+        return None
+        
+    m = MinHash(num_perm=num_perm)
+    # Simple whitespace tokenization
+    for token in text.split():
+        m.update(token.encode("utf-8"))
+    return m
+
+
 def build_curated_row(
     *,
     prompt_row: dict[str, Any],
@@ -215,7 +253,12 @@ def build_curated_row(
     redacted: bool,
     judge_passed: bool | None = None,
 ) -> dict[str, Any]:
-    quality: dict[str, Any] = {"filter_reasons": filter_reasons, "redacted": redacted}
+    difficulty = get_difficulty_score(prompt_row, output_text)
+    quality: dict[str, Any] = {
+        "filter_reasons": filter_reasons, 
+        "redacted": redacted,
+        "difficulty": difficulty
+    }
     if judge_passed is not None:
         quality["judge_passed"] = judge_passed
     return {

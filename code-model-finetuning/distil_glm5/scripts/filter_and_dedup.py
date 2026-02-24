@@ -7,6 +7,7 @@ from typing import Any
 from distil_glm5.config import load_config
 from distil_glm5.filters import (
     build_curated_row,
+    build_minhash,
     filter_example,
     normalize_for_hash,
     redact_obvious_secrets,
@@ -31,6 +32,15 @@ def main() -> int:
         raise SystemExit(f"No raw generations found at {cfg.paths.raw_jsonl}. Run generate_teacher_answers.py first.")
 
     seen_exact: set[str] = set()
+    lsh = None
+    if cfg.dedup.enable_near:
+        try:
+            from datasketch import MinHashLSH
+            lsh = MinHashLSH(threshold=cfg.dedup.near_jaccard_threshold, num_perm=128)
+            print(f"Enabled near-dedup with threshold {cfg.dedup.near_jaccard_threshold}")
+        except ImportError:
+            print("Warning: enable_near is true but datasketch is not installed. Ignoring near-dedup.")
+
     curated: list[dict[str, Any]] = []
     dropped = 0
 
@@ -70,6 +80,15 @@ def main() -> int:
                 dropped += 1
                 continue
             seen_exact.add(h)
+            
+        if lsh is not None:
+            m = build_minhash(out_text)
+            if m is not None:
+                if len(lsh.query(m)) > 0:
+                    # Found a near-duplicate
+                    dropped += 1
+                    continue
+                lsh.insert(row["id"], m)
 
         if cfg.judge.enabled:
             instruction = get_instruction_from_row(row)

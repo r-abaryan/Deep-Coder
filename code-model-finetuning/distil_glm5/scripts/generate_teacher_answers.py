@@ -64,19 +64,31 @@ def main() -> int:
 
     gen = {
         "seed": cfg.generation.seed,
-        "temperature": cfg.generation.temperature,
+        "temperature": cfg.generation.temperature, # default fallback
         "top_p": cfg.generation.top_p,
         "max_tokens": cfg.generation.max_tokens,
         "n": cfg.generation.n,
         "stop": cfg.generation.stop,
     }
 
+    # Temperature strategies for diversity
+    # Greedy (0.0): highly canonical
+    # Balanced (0.6): standard coding style
+    # Creative (1.0): out-of-the-box approaches
+    temperatures = [0.0, 0.6, 1.0]
+
     out_rows: list[dict[str, Any]] = []
     with cf.ThreadPoolExecutor(max_workers=cfg.teacher.concurrency) as ex:
-        futs = [
-            ex.submit(_one, client=client, teacher_model=cfg.teacher.model_id, prompt_row=p, gen=gen)
-            for p in prompts
-        ]
+        futs = []
+        for i, p in enumerate(prompts):
+            # Rotate strategies across the prompt pool
+            row_gen = gen.copy()
+            row_gen["temperature"] = temperatures[i % len(temperatures)]
+            
+            futs.append(
+                ex.submit(_one, client=client, teacher_model=cfg.teacher.model_id, prompt_row=p, gen=row_gen)
+            )
+            
         for fut in tqdm(cf.as_completed(futs), total=len(futs), desc="Generating"):
             out_rows.append(fut.result())
 
