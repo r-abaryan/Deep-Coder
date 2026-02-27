@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import logging
 
-from distil_glm5.config import load_config
-from distil_glm5.io_utils import write_jsonl
-from distil_glm5.prompts import build_prompt_pool
+from src.distil_glm5.config import load_config
+from src.distil_glm5.io_utils import write_jsonl
+from src.distil_glm5.prompts import build_prompt_pool
 
 logger = logging.getLogger(__name__)
 

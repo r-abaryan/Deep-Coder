@@ -5,17 +5,17 @@ import hashlib
 import logging
 from typing import Any
 
-from distil_glm5.config import load_config
-from distil_glm5.filters import (
+from src.distil_glm5.config import load_config
+from src.distil_glm5.filters import (
     build_curated_row,
     build_minhash,
     filter_example,
     normalize_for_hash,
     redact_obvious_secrets,
 )
-from distil_glm5.io_utils import append_jsonl, read_jsonl
-from distil_glm5.judge import get_instruction_from_row, judge_keep
-from distil_glm5.teacher_client import OpenAICompatChatClient
+from src.distil_glm5.io_utils import append_jsonl, read_jsonl
+from src.distil_glm5.judge import get_instruction_from_row, judge_keep
+from src.distil_glm5.teacher_client import OpenAICompatChatClient
 
 logger = logging.getLogger(__name__)
 
