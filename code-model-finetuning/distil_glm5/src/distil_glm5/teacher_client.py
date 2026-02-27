@@ -40,14 +40,12 @@ class OpenAICompatChatClient:
                 resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=self.timeout_s)
                 resp.raise_for_status()
                 data = resp.json()
-                # OpenAI-style: choices[0].message.content
                 content = data["choices"][0]["message"].get("content", "") or ""
                 return ChatResponse(content=content, raw=data)
             except Exception as e:  # noqa: BLE001 - boundary layer
                 last_err = e
                 if attempt >= self.max_retries:
                     break
-                # simple backoff
                 time.sleep(min(2.0**attempt, 10.0))
         raise RuntimeError(f"Chat request failed after retries: {last_err}")
 
@@ -74,7 +72,5 @@ def build_chat_payload(
     if stop:
         payload["stop"] = stop
     if seed is not None:
-        # OpenAI supports seed on some APIs; vLLM may ignore it depending on version.
         payload["seed"] = seed
     return payload
-

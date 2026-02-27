@@ -12,8 +12,18 @@ def ensure_parent_dir(path: str | Path) -> Path:
 
 
 def write_jsonl(path: str | Path, rows: Iterable[dict[str, Any]]) -> Path:
+    """Write rows to a JSONL file (overwrite)."""
     p = ensure_parent_dir(path)
     with p.open("w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return p
+
+
+def append_jsonl(path: str | Path, rows: Iterable[dict[str, Any]]) -> Path:
+    """Append rows to an existing JSONL file (create if missing)."""
+    p = ensure_parent_dir(path)
+    with p.open("a", encoding="utf-8") as f:
         for row in rows:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
     return p
@@ -31,4 +41,3 @@ def read_jsonl(path: str | Path) -> list[dict[str, Any]]:
                 continue
             out.append(json.loads(line))
     return out
-

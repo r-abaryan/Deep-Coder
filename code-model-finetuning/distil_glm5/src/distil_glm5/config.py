@@ -45,6 +45,9 @@ class PromptPoolConfig:
     languages: list[str]
     total_prompts: int
     task_mix: dict[str, float]
+    cot_ratio: float
+    oss_seed_path: str | None
+    oss_ratio: float
 
 
 @dataclass(frozen=True)
@@ -66,6 +69,7 @@ class JudgeConfig:
     max_retries: int
     max_tokens: int
     temperature: float
+    concurrency: int
 
 
 @dataclass(frozen=True)
@@ -117,7 +121,7 @@ def load_config(config_path: str | Path) -> AppConfig:
         seed=None if gen_raw.get("seed", None) is None else int(gen_raw["seed"]),
         temperature=float(gen_raw.get("temperature", 0.6)),
         top_p=float(gen_raw.get("top_p", 0.95)),
-        max_tokens=int(gen_raw.get("max_tokens", 768)),
+        max_tokens=int(gen_raw.get("max_tokens", 2048)),
         n=int(gen_raw.get("n", 1)),
         stop=list(gen_raw.get("stop", [])),
     )
@@ -127,6 +131,9 @@ def load_config(config_path: str | Path) -> AppConfig:
         languages=list(pp_raw.get("languages", ["python"])),
         total_prompts=int(pp_raw.get("total_prompts", 2000)),
         task_mix={k: float(v) for k, v in dict(pp_raw.get("task_mix", {})).items()},
+        cot_ratio=float(pp_raw.get("cot_ratio", 0.5)),
+        oss_seed_path=pp_raw.get("oss_seed_path", None),
+        oss_ratio=float(pp_raw.get("oss_ratio", 0.5)),
     )
 
     filt_raw = raw["filters"]
@@ -141,13 +148,14 @@ def load_config(config_path: str | Path) -> AppConfig:
     judge_raw = raw.get("judge", {})
     judge = JudgeConfig(
         enabled=bool(judge_raw.get("enabled", False)),
-        model_id=str(judge_raw.get("model_id", "Qwen/Qwen2.5-Coder-7B-Instruct")),
-        base_url=str(judge_raw.get("base_url", "http://localhost:8000/v1")).rstrip("/"),
+        model_id=str(judge_raw.get("model_id", "Qwen/Qwen3.5-70B-Instruct")),
+        base_url=str(judge_raw.get("base_url", "http://localhost:8001/v1")).rstrip("/"),
         api_key=str(judge_raw.get("api_key", "EMPTY")),
-        timeout_s=float(judge_raw.get("timeout_s", 60)),
+        timeout_s=float(judge_raw.get("timeout_s", 90)),
         max_retries=int(judge_raw.get("max_retries", 2)),
-        max_tokens=int(judge_raw.get("max_tokens", 10)),
+        max_tokens=int(judge_raw.get("max_tokens", 256)),
         temperature=float(judge_raw.get("temperature", 0.0)),
+        concurrency=int(judge_raw.get("concurrency", 8)),
     )
 
     dedup_raw = raw.get("dedup", {})
@@ -167,4 +175,3 @@ def load_config(config_path: str | Path) -> AppConfig:
         judge=judge,
         dedup=dedup,
     )
-
