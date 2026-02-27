@@ -2,22 +2,22 @@ from __future__ import annotations
 
 import ast
 import re
-from dataclasses import dataclass
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from typing import Any
 
 
 _REFUSAL_PATTERNS = [
-    r"\bI can[’']?t help with that\b",
+    r"\bI can['']?t help with that\b",
     r"\bI cannot help with that\b",
-    r"\bI can[’']?t comply\b",
+    r"\bI can['']?t comply\b",
     r"\bI cannot comply\b",
     r"\bI am unable to\b",
     r"\bI can't assist\b",
     r"\bI cannot assist\b",
-    r"\bI won[’']?t be able to\b",
+    r"\bI won['']?t be able to\b",
 ]
 
 
@@ -52,7 +52,7 @@ def _extract_code_block(text: str, langs: tuple[str, ...]) -> str:
     """
     if not text:
         return ""
-    lang_pattern = "|".join(re.escape(l) for l in langs)
+    lang_pattern = "|".join(re.escape(lang) for lang in langs)
     pattern = rf"```(?:{lang_pattern})?\s*\n([\s\S]*?)\n```"
     m = re.search(pattern, text, flags=re.IGNORECASE)
     if m:
@@ -88,13 +88,12 @@ def typescript_syntax_valid(code: str) -> bool:
             check=False,
         )
         out = proc.stdout + "\n" + proc.stderr
-        # TS1xxx are syntax errors. If any exist in the output, it's a syntax error.
         if re.search(r"TS1\d{3}:", out):
             return False
         return True
     finally:
         try:
-            tempfile.os.remove(tmp_path)
+            tempfile.os.remove(tmp_path)  # type: ignore[attr-defined]
         except OSError:
             pass
 
@@ -141,31 +140,19 @@ def filter_example(
     if drop_refusals and looks_like_refusal(t):
         reasons.append("refusal_or_empty")
 
-    # Only run ast.parse on clearly Python outputs and code-centric tasks.
-    if lang == "python" and require_python_syntax_valid and task_type in {
-        "completion",
-        "bugfix",
-        "refactor",
-    }:
+    code_tasks = {"completion", "bugfix", "refactor"}
+
+    if lang == "python" and require_python_syntax_valid and task_type in code_tasks:
         code = extract_python_from_markdown(t)
         if not python_syntax_valid(code):
             reasons.append("python_syntax_invalid")
 
-    # Optional TS/JS syntax checks, if configured and toolchains are present.
-    if lang in {"typescript", "ts"} and require_ts_js_syntax_valid and task_type in {
-        "completion",
-        "bugfix",
-        "refactor",
-    }:
+    if lang in {"typescript", "ts"} and require_ts_js_syntax_valid and task_type in code_tasks:
         ts_code = _extract_code_block(t, ("ts", "typescript"))
         if not typescript_syntax_valid(ts_code):
             reasons.append("ts_syntax_invalid")
 
-    if lang in {"javascript", "js"} and require_ts_js_syntax_valid and task_type in {
-        "completion",
-        "bugfix",
-        "refactor",
-    }:
+    if lang in {"javascript", "js"} and require_ts_js_syntax_valid and task_type in code_tasks:
         js_code = _extract_code_block(t, ("js", "javascript"))
         if not javascript_syntax_valid(js_code):
             reasons.append("js_syntax_invalid")
@@ -174,10 +161,7 @@ def filter_example(
 
 
 def normalize_for_hash(text: str) -> str:
-    """
-    Normalization used for exact dedup hashes.
-    Keeps it intentionally simple (whitespace + common markdown fences).
-    """
+    """Normalization for exact dedup hashes."""
     t = (text or "").strip()
     t = re.sub(r"```(?:python)?", "```", t, flags=re.IGNORECASE)
     t = re.sub(r"\s+", " ", t)
@@ -207,36 +191,32 @@ def redact_obvious_secrets(text: str) -> tuple[str, bool]:
 def get_difficulty_score(prompt_row: dict[str, Any], output_text: str) -> dict[str, Any]:
     """Calculate basic difficulty metrics based on length and syntactical complexity."""
     t = output_text.strip()
-    score = {
+    score: dict[str, Any] = {
         "length": len(t),
         "lines": len(t.splitlines()),
         "has_comments": bool(re.search(r'#|//|/\*|"""', t)),
         "has_types": bool(re.search(r':\s*[A-Z][a-zA-Z]+', t)),
         "import_diversity": len(set(re.findall(r'import (\w+)|from (\w+)', t))),
     }
-    
-    # Simple heuristic
+
     if score["lines"] < 15 and not score["has_types"]:
         score["level"] = "basic"
     elif score["lines"] > 50 and score["has_types"] and score["import_diversity"] > 2:
         score["level"] = "advanced"
     else:
         score["level"] = "intermediate"
-        
+
     return score
 
 
 def build_minhash(text: str, num_perm: int = 128) -> Any:
-    """Build a datasketch MinHash object from the text for near-dedup.
-    Returns None if datasketch is not installed.
-    """
+    """Build a datasketch MinHash object for near-dedup. Returns None if datasketch missing."""
     try:
-        from datasketch import MinHash
+        from datasketch import MinHash  # type: ignore
     except ImportError:
         return None
-        
+
     m = MinHash(num_perm=num_perm)
-    # Simple whitespace tokenization
     for token in text.split():
         m.update(token.encode("utf-8"))
     return m
@@ -252,15 +232,18 @@ def build_curated_row(
     filter_reasons: list[str],
     redacted: bool,
     judge_passed: bool | None = None,
+    judge_reasoning: str | None = None,
 ) -> dict[str, Any]:
     difficulty = get_difficulty_score(prompt_row, output_text)
     quality: dict[str, Any] = {
-        "filter_reasons": filter_reasons, 
+        "filter_reasons": filter_reasons,
         "redacted": redacted,
-        "difficulty": difficulty
+        "difficulty": difficulty,
     }
     if judge_passed is not None:
         quality["judge_passed"] = judge_passed
+    if judge_reasoning is not None:
+        quality["judge_reasoning"] = judge_reasoning
     return {
         "schema_version": 1,
         "id": prompt_row["id"],
@@ -273,4 +256,3 @@ def build_curated_row(
         "provenance": prompt_row.get("meta", {}),
         "raw": {"teacher_response": raw_response},
     }
-

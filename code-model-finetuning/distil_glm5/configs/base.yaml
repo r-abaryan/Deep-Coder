@@ -22,13 +22,13 @@ generation:
   seed: 42
   temperature: 0.6
   top_p: 0.95
-  max_tokens: 768
+  # Bumped from 768 -> 2048 to accommodate CoT reasoning + code in the same response.
+  max_tokens: 2048
   n: 1
   stop: []
 
 prompt_pool:
   languages: ["python", "typescript", "javascript"]
-  # Try to lower it down for experiments
   total_prompts: 10000
   task_mix:
     completion: 0.35
@@ -37,6 +37,14 @@ prompt_pool:
     explain: 0.15
     tests: 0.10
     code_review: 0.05
+  # Fraction of prompts that include <think>...</think> chain-of-thought instructions.
+  # 0.0 = no CoT, 1.0 = all CoT.  0.5 gives a mix so the student learns both styles.
+  cot_ratio: 0.5
+  # Path to JSONL file with OSS code seeds (optional).
+  # Each line: {"language": "python", "code": "...", "source": "the-stack-v2", "license": "MIT"}
+  # When provided, bugfix/refactor/code_review tasks will use real code at oss_ratio rate.
+  oss_seed_path: null  # e.g. "data/oss_seeds.jsonl"
+  oss_ratio: 0.5
 
 filters:
   min_output_chars: 64
@@ -45,22 +53,24 @@ filters:
   require_python_syntax_valid: true
   require_ts_js_syntax_valid: true
 
-# Optional second model to accept/reject teacher outputs (rejection sampling).
-# Off by default. When enabled, only rows the judge accepts are kept.
-# For better and higher quality data, we can enable this. If both Model agree on the output, Gold Standard Dataset is created.
+# Optional second model for rejection sampling (judge / reviewer).
+# When enabled, teacher outputs must pass BOTH the filter pipeline AND the judge.
+# For gold-standard datasets, enable this with a strong reviewer model.
 judge:
   enabled: false
-  model_id: "Qwen/Qwen2.5-Coder-7B-Instruct"
-  base_url: "http://localhost:8000/v1"
+  model_id: "Qwen/Qwen3.5-70B-Instruct"
+  # Separate endpoint — the judge typically runs on its own GPU(s).
+  base_url: "http://localhost:8001/v1"
   api_key: "EMPTY"
-  timeout_s: 60
+  timeout_s: 90
   max_retries: 2
-  max_tokens: 10
+  # 256 tokens allows the judge to write a brief evaluation + YES/NO verdict.
+  max_tokens: 256
   temperature: 0.0
+  concurrency: 8
 
 dedup:
   enable_exact: true
   enable_near: false
-  # Near-dup config will be enabled when `datasketch` is installed.
+  # Near-dup config (requires `pip install datasketch`).
   near_jaccard_threshold: 0.92
-
