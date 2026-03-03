@@ -42,3 +42,7 @@ ipywidgets>=8.1.0
 
 # Optional: near-duplicate detection
 datasketch>=1.6.5
+
+# Dev
+pytest>=8.0
+ruff>=0.9.0

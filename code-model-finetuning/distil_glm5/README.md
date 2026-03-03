@@ -42,8 +42,14 @@ python scripts/filter_and_dedup.py --config configs/base.yaml
 Export + report:
 
 ```bash
-python scripts/export_dataset.py --config configs/base.yaml
+python scripts/export_dataset.py --config configs/base.yaml --format jsonl
 python scripts/dataset_report.py --config configs/base.yaml
+```
+
+Run tests (no GPU or API needed):
+
+```bash
+python -m pytest tests/ -v
 ```
 
 ### OSS Code Seeds
@@ -75,7 +81,7 @@ Default paths (configurable) are under:
 - `out/prompts/` — prompt pool JSONL
 - `out/raw/` — teacher raw generations JSONL
 - `out/curated/` — filtered + deduped + judge-reviewed JSONL
-- `out/export/` — final export artifacts
+- `out/export/` — `train.jsonl` (training-ready, `raw` field stripped) + `meta.json`
 
 ### Release checklist
 

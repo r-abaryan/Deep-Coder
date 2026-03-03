@@ -15,7 +15,7 @@ From the project root:
 
 ```bash
 cd code-model-finetuning/distil_glm5
-python -m pip install -e ".[hf]"
+python -m pip install -e ".[hf,dev]"
 ```
 
 If you want TypeScript/JavaScript syntax checks during filtering, install Node and TypeScript on the machine where you run the scripts:
@@ -154,13 +154,25 @@ python scripts/export_dataset.py --config configs/base.yaml --format jsonl
 python scripts/dataset_report.py --config configs/base.yaml
 ```
 
-The report shows counts by task type and language.
+The JSONL export writes `out/export/train.jsonl` (curated rows with the bulky `raw` field stripped) and `out/export/meta.json`.
+
+The report shows counts by task type, language, CoT ratio, and difficulty.
 
 If you want a Hugging Face dataset on disk:
 
 ```bash
 python scripts/export_dataset.py --config configs/base.yaml --format hf
 ```
+
+---
+
+### 4.5 Run tests (optional)
+
+```bash
+python -m pytest tests/ -v
+```
+
+Tests cover filters, judge verdict parsing, prompt generation, and config loading. No GPU or API access needed.
 
 ---
 

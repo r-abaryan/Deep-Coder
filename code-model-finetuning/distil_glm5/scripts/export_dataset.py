@@ -33,6 +33,14 @@ def main() -> int:
     export_dir.mkdir(parents=True, exist_ok=True)
 
     if args.format == "jsonl":
+        # Write training-ready JSONL (drop raw teacher API response payload).
+        data_path = export_dir / "train.jsonl"
+        with data_path.open("w", encoding="utf-8") as f:
+            for row in rows:
+                clean = {k: v for k, v in row.items() if k != "raw"}
+                f.write(json.dumps(clean, ensure_ascii=False) + "\n")
+        logger.info("Exported %d rows to %s", len(rows), data_path)
+
         meta_path = export_dir / "meta.json"
         with meta_path.open("w", encoding="utf-8") as f:
             json.dump(
@@ -40,7 +48,7 @@ def main() -> int:
                 f,
                 indent=2,
             )
-        logger.info("Exported metadata to %s", meta_path)
+        logger.info("Wrote metadata to %s", meta_path)
         return 0
 
     if args.format == "hf":
