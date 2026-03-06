@@ -6,7 +6,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from distil_glm5.prompts import PromptExample, build_prompt_pool, load_oss_seeds
+from src.distil_glm5.prompts import PromptExample, build_prompt_pool, load_oss_seeds
 
 
 # ---------------------------------------------------------------------------

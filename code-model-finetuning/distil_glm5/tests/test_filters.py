@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from distil_glm5.filters import (
+from src.distil_glm5.filters import (
     FilterResult,
     build_curated_row,
     extract_python_from_markdown,
