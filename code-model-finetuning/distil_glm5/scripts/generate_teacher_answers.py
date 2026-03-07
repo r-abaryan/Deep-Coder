@@ -9,9 +9,9 @@ from typing import Any
 
 from tqdm import tqdm
 
-from src.distil_glm5.config import load_config
-from src.distil_glm5.io_utils import read_jsonl, write_jsonl, append_jsonl
-from src.distil_glm5.teacher_client import OpenAICompatChatClient, build_chat_payload
+from distil_glm5.config import load_config
+from distil_glm5.io_utils import read_jsonl, write_jsonl, append_jsonl
+from distil_glm5.teacher_client import OpenAICompatChatClient, build_chat_payload
 
 logger = logging.getLogger(__name__)
 

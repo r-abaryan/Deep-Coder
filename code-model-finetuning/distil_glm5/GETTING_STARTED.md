@@ -31,27 +31,39 @@ These tools are optional. If they are missing, TS/JS syntax checks are skipped; 
 
 ### 2. Serve GLM-5-FP8 with vLLM (cloud GPU)
 
-On a Linux GPU machine (A100/H100 or similar):
+Requires 8x H200 (or equivalent ~860 GB+ VRAM). On a Linux GPU machine:
 
 ```bash
-python -m pip install -U "vllm[all]" --pre --index-url https://pypi.org/simple --extra-index-url https://wheels.vllm.ai/nightly
-python -m pip install "git+https://github.com/huggingface/transformers.git"
+uv pip install --upgrade --force-reinstall vllm --torch-backend=auto \
+  --extra-index-url https://wheels.vllm.ai/nightly/cu130
+uv pip install --upgrade --force-reinstall git+https://github.com/huggingface/transformers.git
+uv pip install --force-reinstall numba
 ```
 
 Start the server:
 
 ```bash
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:False
+
 vllm serve zai-org/GLM-5-FP8 \
+  --served-model-name "zai-org/GLM-5-FP8" \
   --tensor-parallel-size 8 \
-  --gpu-memory-utilization 0.85 \
-  --served-model-name "zai-org/GLM-5-FP8"
+  --dtype bfloat16 \
+  --kv-cache-dtype fp8 \
+  --gpu-memory-utilization 0.93 \
+  --max_num_batched_tokens 4096 \
+  --max-model-len 16384 \
+  --speculative-config.method mtp \
+  --speculative-config.num_speculative_tokens 1 \
+  --seed 3407
 ```
 
-By default vLLM exposes an OpenAI-compatible API at:
+Flag notes:
+- `--kv-cache-dtype fp8` stores KV cache in FP8 instead of FP16, halving cache memory so more fits in VRAM for batching.
+- `--speculative-config.method mtp` uses GLM-5's built-in multi-token prediction head to draft 1 extra token per step, giving ~1.3-1.5x speedup when the guess is correct.
+- `--max-model-len 16384` is enough for our prompts (max_tokens is 2048); no need for the full 200K context.
 
-- `http://<host>:8000/v1`
-
-Leave this process running while you generate data.
+vLLM exposes an OpenAI-compatible API at `http://<host>:8000/v1`. Leave this process running while you generate data.
 
 ---
 

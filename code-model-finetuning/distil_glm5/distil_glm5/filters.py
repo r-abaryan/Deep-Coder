@@ -163,7 +163,7 @@ def filter_example(
 def normalize_for_hash(text: str) -> str:
     """Normalization for exact dedup hashes."""
     t = (text or "").strip()
-    t = re.sub(r"```(?:python)?", "```", t, flags=re.IGNORECASE)
+    t = re.sub(r"```(?:python|py|typescript|ts|javascript|js)?", "```", t, flags=re.IGNORECASE)
     t = re.sub(r"\s+", " ", t)
     return t.strip()
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.distil_glm5.judge import _parse_verdict, get_instruction_from_row
+from distil_glm5.judge import _parse_verdict, get_instruction_from_row
 
 
 # ---------------------------------------------------------------------------

@@ -26,11 +26,8 @@ dedup = [
   "datasketch>=1.6.5",
 ]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-
 [tool.setuptools.packages.find]
-where = ["src"]
+include = ["distil_glm5*"]
 
 [tool.ruff]
 line-length = 100

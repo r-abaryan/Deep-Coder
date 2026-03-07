@@ -4,8 +4,8 @@ import argparse
 import logging
 from collections import Counter
 
-from src.distil_glm5.config import load_config
-from src.distil_glm5.io_utils import read_jsonl
+from distil_glm5.config import load_config
+from distil_glm5.io_utils import read_jsonl
 
 logger = logging.getLogger(__name__)
 

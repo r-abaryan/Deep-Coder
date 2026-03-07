@@ -5,8 +5,8 @@ import json
 import logging
 from pathlib import Path
 
-from src.distil_glm5.config import load_config
-from src.distil_glm5.io_utils import ensure_parent_dir, read_jsonl
+from distil_glm5.config import load_config
+from distil_glm5.io_utils import ensure_parent_dir, read_jsonl
 
 logger = logging.getLogger(__name__)
 

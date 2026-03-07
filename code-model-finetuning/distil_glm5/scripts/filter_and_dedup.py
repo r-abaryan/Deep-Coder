@@ -5,17 +5,17 @@ import hashlib
 import logging
 from typing import Any
 
-from src.distil_glm5.config import load_config
-from src.distil_glm5.filters import (
+from distil_glm5.config import load_config
+from distil_glm5.filters import (
     build_curated_row,
     build_minhash,
     filter_example,
     normalize_for_hash,
     redact_obvious_secrets,
 )
-from src.distil_glm5.io_utils import append_jsonl, read_jsonl
-from src.distil_glm5.judge import get_instruction_from_row, judge_keep
-from src.distil_glm5.teacher_client import OpenAICompatChatClient
+from distil_glm5.io_utils import append_jsonl, read_jsonl
+from distil_glm5.judge import get_instruction_from_row, judge_keep
+from distil_glm5.teacher_client import OpenAICompatChatClient
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +169,7 @@ def main() -> int:
         judged_curated: list[dict[str, Any]] = []
 
         with cf_mod.ThreadPoolExecutor(
-            max_workers=min(32, cfg.teacher.concurrency)
+            max_workers=min(32, cfg.judge.concurrency)
         ) as ex:
             futs = [ex.submit(_judge_one, item) for item in to_judge]
             for fut in tqdm(cf_mod.as_completed(futs), total=len(futs), desc="Judging"):

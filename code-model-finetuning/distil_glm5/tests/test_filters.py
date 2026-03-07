@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.distil_glm5.filters import (
+from distil_glm5.filters import (
     FilterResult,
     build_curated_row,
     extract_python_from_markdown,
@@ -153,6 +153,14 @@ class TestNormalizeForHash:
     def test_strips_python_fence(self) -> None:
         result = normalize_for_hash("```python\nx=1\n```")
         assert "python" not in result.lower()
+
+    def test_strips_ts_fence(self) -> None:
+        result = normalize_for_hash("```typescript\nlet x = 1;\n```")
+        assert "typescript" not in result.lower()
+
+    def test_strips_js_fence(self) -> None:
+        result = normalize_for_hash("```js\nconst x = 1;\n```")
+        assert "js" not in result.lower().split()
 
     def test_none(self) -> None:
         assert normalize_for_hash("") == ""

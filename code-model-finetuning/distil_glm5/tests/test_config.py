@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.distil_glm5.config import (
+from distil_glm5.config import (
     AppConfig,
     DedupConfig,
     FiltersConfig,
