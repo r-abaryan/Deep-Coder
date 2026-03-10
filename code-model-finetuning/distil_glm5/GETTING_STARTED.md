@@ -33,12 +33,22 @@ These tools are optional. If they are missing, TS/JS syntax checks are skipped; 
 
 Requires 8x H200 (or equivalent ~860 GB+ VRAM). On a Linux GPU machine:
 
+Check your CUDA version first — the wheel URL must match:
+
+```bash
+nvcc --version   # e.g. 12.4 → cu124, 12.6 → cu126
+```
+
 ```bash
 uv pip install --upgrade --force-reinstall vllm --torch-backend=auto \
-  --extra-index-url https://wheels.vllm.ai/nightly/cu130
+  --extra-index-url https://wheels.vllm.ai/nightly/cu124
 uv pip install --upgrade --force-reinstall git+https://github.com/huggingface/transformers.git
 uv pip install --force-reinstall numba
 ```
+
+> GLM-5 uses `glm_moe_dsa` architecture which requires a bleeding-edge transformers build.
+> The git install above is mandatory — released PyPI versions will fail with
+> `"Transformers does not recognize this architecture"`.
 
 Start the server:
 
@@ -49,7 +59,6 @@ vllm serve zai-org/GLM-5-FP8 \
   --served-model-name "zai-org/GLM-5-FP8" \
   --tensor-parallel-size 8 \
   --dtype bfloat16 \
-  --kv-cache-dtype fp8 \
   --gpu-memory-utilization 0.93 \
   --max_num_batched_tokens 4096 \
   --max-model-len 16384 \
@@ -59,7 +68,7 @@ vllm serve zai-org/GLM-5-FP8 \
 ```
 
 Flag notes:
-- `--kv-cache-dtype fp8` stores KV cache in FP8 instead of FP16, halving cache memory so more fits in VRAM for batching.
+- **No `--kv-cache-dtype fp8`** — GLM-5's MLA attention (`head_size=576`, `qk_nope_head_dim=192`) is incompatible with FP8 KV cache in vLLM. All MLA attention backends reject `kv_cache_dtype=fp8` for this architecture. With 8x H200 (~1.4TB VRAM) the default FP16 KV cache is fine.
 - `--speculative-config.method mtp` uses GLM-5's built-in multi-token prediction head to draft 1 extra token per step, giving ~1.3-1.5x speedup when the guess is correct.
 - `--max-model-len 16384` is enough for our prompts (max_tokens is 2048); no need for the full 200K context.
 
@@ -99,16 +108,19 @@ Optional: a second model (judge) can accept or reject teacher outputs (rejection
 ```yaml
 judge:
   enabled: false
-  model_id: "Qwen/Qwen2.5-Coder-7B-Instruct"
-  base_url: "http://localhost:8000/v1"
+  model_id: "Qwen/Qwen3.5-70B-Instruct"
+  base_url: "http://localhost:8001/v1"
   api_key: "EMPTY"
-  timeout_s: 60
+  timeout_s: 90
   max_retries: 2
-  max_tokens: 10
+  max_tokens: 256
   temperature: 0.0
+  concurrency: 8
 ```
 
-Set `enabled: true` and point `base_url` at a server that serves the judge model (e.g. same vLLM with a second model, or another endpoint). The judge is called during `filter_and_dedup.py`; only rows it accepts are kept.
+Set `enabled: true` and point `base_url` at a server that serves the judge model. The judge needs 256 tokens to write a brief task-specific evaluation + YES/NO verdict. It runs during `filter_and_dedup.py`; only rows it accepts are kept.
+
+> The judge requires a **separate GPU endpoint** — GLM-5-FP8 at TP=8 uses all GPUs. Either use a second node, or run sequentially: generate with GLM-5, kill the server, then serve the judge model on the same GPUs before running filter_and_dedup.
 
 ---
 
