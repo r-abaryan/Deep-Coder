@@ -62,14 +62,14 @@ vllm serve zai-org/GLM-5-FP8 \
   --gpu-memory-utilization 0.93 \
   --max_num_batched_tokens 4096 \
   --max-model-len 16384 \
-  --speculative-config.method mtp \
-  --speculative-config.num_speculative_tokens 1 \
+  --enforce-eager \
   --seed 3407
 ```
 
 Flag notes:
 - **No `--kv-cache-dtype fp8`** — GLM-5's MLA attention (`head_size=576`, `qk_nope_head_dim=192`) is incompatible with FP8 KV cache in vLLM. All MLA attention backends reject `kv_cache_dtype=fp8` for this architecture. With 8x H200 (~1.4TB VRAM) the default FP16 KV cache is fine.
-- `--speculative-config.method mtp` uses GLM-5's built-in multi-token prediction head to draft 1 extra token per step, giving ~1.3-1.5x speedup when the guess is correct.
+- **`--enforce-eager`** — disables CUDA graph capture. Required because GLM-5's `FLASHMLA_SPARSE` attention backend uses a `sparse_attn_indexer` op that calls `.item()` during forward, which is illegal during CUDA graph capture. Throughput is slightly lower without CUDA graphs but the model runs correctly.
+- **No `--speculative-config.method mtp`** — MTP speculation combined with sparse MLA attention triggers the same CUDA graph capture failure. Omitted until vLLM fixes the incompatibility.
 - `--max-model-len 16384` is enough for our prompts (max_tokens is 2048); no need for the full 200K context.
 
 vLLM exposes an OpenAI-compatible API at `http://<host>:8000/v1`. Leave this process running while you generate data.
