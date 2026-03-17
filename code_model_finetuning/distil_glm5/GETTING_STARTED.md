@@ -272,6 +272,3 @@ trainer = SFTTrainer(
 trainer.train()
 trainer.save_model("glm4_distilled_sft")
 ```
-
-You can adapt this outline into a dedicated training script or notebook under `code-model-finetuning`.
-
