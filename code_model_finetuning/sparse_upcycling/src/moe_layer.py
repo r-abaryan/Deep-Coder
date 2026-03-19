@@ -98,7 +98,7 @@ class MoEConfig:
 
 
 # -----------------------------------------------------------------------------
-# Expert (improvement 4: separate class instead of raw nn.Module copy)
+# Expert (separate class instead of raw nn.Module copy)
 # -----------------------------------------------------------------------------
 
 class Expert(nn.Module):
@@ -139,7 +139,7 @@ class Expert(nn.Module):
 
 
 # -----------------------------------------------------------------------------
-# Drop-Upcycling helpers (improvement 1)
+# Drop-Upcycling helpers
 # -----------------------------------------------------------------------------
 
 def apply_drop_reinit(expert: Expert, ratio: float, expert_id: int, layer_seed: int) -> Expert:
@@ -180,7 +180,7 @@ def apply_drop_reinit(expert: Expert, ratio: float, expert_id: int, layer_seed: 
 
 
 # -----------------------------------------------------------------------------
-# Weight scaling helper (improvement 2)
+# Weight scaling helper
 # -----------------------------------------------------------------------------
 
 def apply_weight_scaling(expert: Expert, scale: float) -> Expert:
@@ -205,7 +205,7 @@ def apply_weight_scaling(expert: Expert, scale: float) -> Expert:
 
 
 # -----------------------------------------------------------------------------
-# Router (improvement 5: near-uniform init)
+# Router (near-uniform init)
 # -----------------------------------------------------------------------------
 
 class TopKRouter(nn.Module):

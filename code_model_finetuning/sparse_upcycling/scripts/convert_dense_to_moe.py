@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------------------------
-# Generic model accessors (improvement 6)
+# Generic model accessors
 # ------------------------------------------------------------------------------
 # These work across model families - Qwen2/3, LLaMA, Mistral, etc.
 # No hard-coded "model.model.layers[i].mlp" - we probe the object instead.
