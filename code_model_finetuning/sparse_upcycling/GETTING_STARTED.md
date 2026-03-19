@@ -126,7 +126,7 @@ python scripts/convert_dense_to_moe.py --config configs/qwen3_8b_4experts.yaml
 
 ## Step 2: Train (continued pre-training)
 
-Full-parameter training of expert FFNs + routers on nvidia/OpenCodeReasoning.
+Full-parameter training of expert FFNs + routers on nvidia/OpenCodeReasoning(or the distilled/extracted DS from GLM-5 or other MoE-model).
 Launched with DeepSpeed ZeRO-3 across 2 GPUs:
 
 ```bash

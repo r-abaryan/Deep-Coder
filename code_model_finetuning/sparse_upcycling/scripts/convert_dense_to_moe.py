@@ -159,7 +159,7 @@ def convert(config_path: str) -> None:
     seed         = cfg["moe"].get("seed", 42)
 
     logger.info("=" * 60)
-    logger.info("Dense → MoE Upcycling")
+    logger.info("Dense -> MoE Upcycling")
     logger.info("  Model:          %s", model_name)
     logger.info("  Experts:        %d  (top-%d routing)", num_experts, top_k)
     logger.info("  Drop-reinit:    %.0f%%  (Drop-Upcycling)", drop_ratio * 100)
@@ -211,7 +211,7 @@ def convert(config_path: str) -> None:
 
         param_count = sum(p.numel() for p in mlp.parameters()) / 1e6
 
-        # Build experts: clone → drop-reinit → weight scale
+        # Build experts: clone -> drop-reinit -> weight scale
         experts = nn.ModuleList()
         layer_seed = seed + layer_idx * 1000  # unique per layer
         for expert_id in range(num_experts):
@@ -228,7 +228,7 @@ def convert(config_path: str) -> None:
         _set_mlp(layer, moe_layer)
 
         logger.info(
-            "  Layer %2d → MoE  (%d experts × %.0fM params, drop=%.0f%%, scale=%.2f)",
+            "  Layer %2d -> MoE  (%d experts × %.0fM params, drop=%.0f%%, scale=%.2f)",
             layer_idx, num_experts, param_count, drop_ratio * 100, weight_scale,
         )
 
